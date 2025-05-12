@@ -15,7 +15,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.simonkingws</groupId>
+            <groupId>io.github.simonkingws</groupId>
             <artifactId>webconfig-feign</artifactId>
         </dependency>
         <dependency>

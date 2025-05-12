@@ -68,6 +68,3 @@ JDK1.8+，redis，springboot2.x，dubbo3.x
 
 ### 使用说明以以及更新日志
 详见：https://github.com/simonkingws/webconfig-springboot/blob/main/doc/QuickStart.md
-
-# webconfig-springboot
-# webconfig-springboot

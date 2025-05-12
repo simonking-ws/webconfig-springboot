@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>链路统计</title>
+    <link rel="stylesheet" th:href="@{/css/layui.css}" th:inline="css">
+    <link rel="stylesheet" th:href="@{/css/index.css}" th:inline="css">
+</head>
+<body>
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-header">
+        <div class="layui-logo layui-hide-xs layui-bg-black">全链路统计信息</div>
+        <ul class="layui-nav layui-layout-right">
+            <li class="layui-nav-item layui-hide layui-show-sm-inline-block">
+                <a href="javascript:;">
+                    <img src="//unpkg.com/outeres@0.0.10/img/layui/icon-v2.png" class="layui-nav-img">
+                    [[${session.login_user.username}]]
+                </a>
+                <dl class="layui-nav-child">
+                    <dd onclick="logOff();"><a href="javascript:void(0);">注销</a></dd>
+                    <dd onclick="logout();"><a href="javascript:void(0);">登出</a></dd>
+                </dl>
+            </li>
+        </ul>
+    </div>
+    <div class="layui-side layui-bg-black">
+        <div class="layui-side-scroll">
+            <ul class="layui-nav layui-nav-tree">
+                <li class="layui-nav-item layui-nav-itemed layui-this">
+                    <a href="#server-stat">服务调用的统计</a>
+                </li>
+                <li class="layui-nav-item">
+                    <a href="#server-graph">服务调用的拓扑图</a>
+                </li>
+                <li class="layui-nav-item">
+                    <a href="#server-trace">服务调用的链路</a>
+                </li>
+                <li class="layui-nav-item">
+                    <a href="#method-active">方法调用的活跃程度</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="layui-body">
+        <!-- 内容主体区域 -->
+        <div class="layui-div-padding">
+            <div class="layui-card layui-panel">
+                <div class="layui-card-body">
+                    <div class="content-bottom" id="server-stat">
+                        <p class="title-p"><span>服务调用的统计</span></p>
+                        <ul class="title-ul">
+                            <li class="li-default" data-type="list">列表</li>
+                            <li data-type="histogram">柱状图</li>
+                        </ul>
+                        <div class="server-data-list">
+                            <table class="layui-table little-table">
+                                <thead>
+                                <tr>
+                                    <th>服务名称</th>
+                                    <th>调用的次数</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="serviceStat: ${serverHistogram}">
+                                    <td th:text="${serviceStat.serverName}" ></td>
+                                    <td th:text="${serviceStat.invokeCount}"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="chart-container"></div>
+                    </div>
+                </div>
+
+                <div class="content-bottom" id="server-graph">
+                    <p><span>服务调用的拓扑图</span></p>
+                    <div id="graph-container"></div>
+                </div>
+
+                <div class="content-bottom" id="server-trace">
+                    <p><span>服务调用的链路</span></p>
+                    <form class="layui-form trace-form">
+                        <div class="layui-form-item">
+                            <div class="layui-inline">
+                                <label class="layui-form-label">展示的链路数：</label>
+                                <div class="layui-input-inline">
+                                    <select name="topSum">
+                                        <option value="10" selected>10条</option>
+                                        <option value="30">30条</option>
+                                        <option value="50">50条</option>
+                                        <option value="100">100条</option>
+                                        <option value="200">200条</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="layui-inline">
+                                <label class="layui-form-label">traceId：</label>
+                                <div class="layui-input-inline width-300">
+                                    <input type="text" name="traceId" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-inline">
+                                <label class="layui-form-label">链路调用的用户ID：</label>
+                                <div class="layui-input-inline">
+                                    <input type="text" name="userId" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-inline">
+                                <label class="layui-form-label">是否有异常链路：</label>
+                                <div class="layui-input-block">
+                                    <input type="checkbox" name="exceptionFlag" lay-skin="tag" title="是" value="true">
+                                    <input type="checkbox" name="exceptionFlag" lay-skin="tag" title="否" value="false">
+                                </div>
+                            </div>
+                            <div class="layui-inline">
+                                <label class="layui-form-label">链路调用的日期：</label>
+                                <div class="layui-input-inline layui-input-wrap">
+                                    <div class="layui-input-prefix">
+                                        <i class="layui-icon layui-icon-date"></i>
+                                    </div>
+                                    <input type="text" name="invokeTimeStart" id="invokeTimeStart" placeholder="yyyy-MM-dd" autocomplete="off" class="layui-input">
+                                </div>
+                                <div class="layui-input-inline layui-input-wrap">
+                                    <div class="layui-input-prefix">
+                                        <i class="layui-icon layui-icon-date"></i>
+                                    </div>
+                                    <input type="text" name="invokeTimeEnd" id="invokeTimeEnd" placeholder="yyyy-MM-dd" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="layui-form-item form-btn">
+                            <input type="button" class="layui-btn" id="traceForm" value="查询">
+                            <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                        </div>
+                    </form>
+                    <table class="layui-table trace-table" th:fragment="walkingCompeteList">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>traceId</th>
+                                <th>链路的起点</th>
+                                <th>链路的终点</th>
+                                <th>起点所在的服务名称</th>
+                                <th>开始调用的时间</th>
+                                <th>耗时(ms)</th>
+                                <th>总链路数</th>
+                                <th>调用的方法数</th>
+                                <th>链路调用的用户</th>
+                                <th>是否有异常</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="walkingCompete,status: ${walkingCompeteList}">
+                                <td th:text="${status.index+1}"></td>
+                                <td th:inline="text">[[${walkingCompete.traceId}]]<a href="javascript:void(0);" class="a-btn" th:data="${walkingCompete.traceId}">[详细信息]</a></td>
+                                <td th:text="${walkingCompete.traceStartPos}"></td>
+                                <td th:text="${walkingCompete.traceEndPos}" th:class="${walkingCompete.exceptionFlag} ? 'td-waring' : ''"></td>
+                                <td th:text="${walkingCompete.applicationName}"></td>
+                                <td th:text="${#dates.format(walkingCompete.traceStartTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                                <td th:text="${walkingCompete.traceTimeConsume}"></td>
+                                <td th:text="${walkingCompete.traceSum}"></td>
+                                <td th:text="${walkingCompete.invokeMethodSum}"></td>
+                                <td th:inline="text">
+                                    用户 ID： [[${walkingCompete.userId}]]<br>
+                                    用户姓名： [[${walkingCompete.userName}]]
+                                </td>
+                                <td th:text="${walkingCompete.exceptionFlag} ? '是' : '否'"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="layui-card-body">
+                    <div class="content-bottom" id="method-active">
+                        <p class="title-p"><span>方法调用的活跃程度</span></p>
+                        <ul class="title-ul">
+                            <li class="li-default" data-type="list">列表</li>
+                            <li data-type="pie">饼状图</li>
+                        </ul>
+                        <form class="layui-form method-form">
+                            <div class="layui-form-item">
+                                <div class="layui-inline">
+                                    <label class="layui-form-label">统计的方法数限制：</label>
+                                    <div class="layui-input-inline">
+                                        <select name="topSum">
+                                            <option value="5" selected>5个</option>
+                                            <option value="10">10个</option>
+                                            <option value="15">15个</option>
+                                            <option value="20">20个</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="layui-inline">
+                                    <label class="layui-form-label">方法活跃度排序：</label>
+                                    <div class="layui-input-inline">
+                                        <select name="activation">
+                                            <option value="LOW" selected>由低到高</option>
+                                            <option value="HIGH">由高到低</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="layui-inline">
+                                    <label class="layui-form-label">方法类名：</label>
+                                    <div class="layui-input-inline width-300">
+                                        <input type="text" name="className" autocomplete="off" class="layui-input">
+                                    </div>
+                                </div>
+                                <div class="layui-inline">
+                                    <label class="layui-form-label">方法名称：</label>
+                                    <div class="layui-input-inline">
+                                        <input type="text" name="methodName" autocomplete="off" class="layui-input">
+                                    </div>
+                                </div>
+                                <div class="layui-inline">
+                                    <label class="layui-form-label">方法调用的日期：</label>
+                                    <div class="layui-input-inline layui-input-wrap">
+                                        <div class="layui-input-prefix"> <i class="layui-icon layui-icon-date"></i></div>
+                                        <input type="text" name="invokeTimeStart" id="timeStart"
+                                               autocomplete="off" class="layui-input" th:value="${#dates.format(methodInvokeDto.invokeTimeStart, 'yyyy-MM-dd')}">
+                                    </div>
+                                    <div class="layui-input-inline layui-input-wrap">
+                                        <div class="layui-input-prefix"><i class="layui-icon layui-icon-date"></i></div>
+                                        <input type="text" name="invokeTimeEnd" id="timeEnd"
+                                               autocomplete="off" class="layui-input" th:value="${#dates.format(methodInvokeDto.invokeTimeEnd, 'yyyy-MM-dd')}">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="layui-form-item form-btn">
+                                <input type="button" class="layui-btn" id="methodForm" value="查询">
+                                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                            </div>
+                        </form>
+                        <div class="method-data-list">
+                            <table class="layui-table method-table" th:fragment="methdStatList">
+                                <thead>
+                                    <tr>
+                                        <th>方法所在类名</th>
+                                        <th>方法名称</th>
+                                        <th>调用的次数</th>
+                                        <th>最新调用的时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody th:data="${methodStatListJson}">
+                                    <tr th:each="methodStat: ${methodStatList}">
+                                        <td th:text="${methodStat.className}"></td>
+                                        <td th:text="${methodStat.methodName}" ></td>
+                                        <td th:text="${methodStat.invokeCount}"></td>
+                                        <td th:text="${#dates.format(methodStat.invokeTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="pie-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-footer">
+        <!-- 底部固定区域 -->
+        <a href="https://github.com/simonkingws/webconfig-springboot" target="_blank">【去Github链接，支持一下！】</a>
+        <a href="https://blog.csdn.net/static_coder" target="_blank">【去技术博客查看更多！】</a>
+    </div>
+</div>
+</body>
+<script th:src="@{/js/jqery-3.7.1.js}"></script>
+<script th:src="@{/js/echarts.min-5.5.0.js}"></script>
+<script th:src="@{/js/layui.js}"></script>
+<script th:src="@{/js/common.js}"></script>
+<script type="text/javascript" th:inline="javascript">
+    $(function (){
+        // 初始化Graph
+        initGraph();
+
+        // tab 切换
+        $("#server-stat, #method-active").find(".title-ul li").click(function (){
+            let idName = $(this).parents(".content-bottom").attr("id");
+            $(this).parent().find("li").each(function (){
+                $(this).removeClass("li-default");
+            });
+
+            // 添加样式
+            $(this).attr("class","li-default");
+            let dataType = $(this).attr("data-type");
+            if (dataType === "list") {
+                if (idName === "server-stat") {
+                    $(".server-data-list").show();
+                    $("#chart-container").hide();
+                }else{
+                    $(".method-data-list").show();
+                    $("#pie-container").hide();
+                }
+            }else if (dataType === "histogram") {
+                $(".server-data-list").hide();
+                // 初始化方法
+                $("#chart-container").show();
+                initChart([[${serverHistogram}]]);
+            }else {
+                $(".method-data-list").hide();
+                // 初始化方法
+                $("#pie-container").show();
+                // 增加锚点
+                $("html,body").animate({scrollTop: $("#pie-container").offset().top - 70}, 800);
+
+
+                let dataList = [[${methodStatList}]];
+                let dataJson = $(".method-table").find("tbody").attr("data");
+                if (!$.isEmptyObject(dataJson)) {
+                    dataList = eval(dataJson);
+                }
+                initPie(dataList);
+            }
+        });
+
+        // 初始化表单
+        layui.use(['laydate'], function(){
+            let laydate = layui.laydate;
+            // 日期
+            laydate.render({elem: '#invokeTimeStart'});
+            laydate.render({elem: '#invokeTimeEnd'});
+
+            laydate.render({elem: '#timeStart'});
+            laydate.render({elem: '#timeEnd'});
+        });
+
+        // 锚点
+        $(".layui-side-scroll").find("a").click(function (){
+            let href = $(this).attr("href");
+            let pos = $(href).offset().top - 70;
+            $("html,body").animate({scrollTop: pos}, 800);
+        });
+
+        // 查询详细链路
+        $("#traceForm").click(function (){
+            let serialize = $(".trace-form").serialize();
+            let $input = $("input[name='exceptionFlag']:checked");
+            if ($input.length > 1) {
+                serialize = serialize.replaceAll("exceptionFlag=true", "").replaceAll("exceptionFlag=false", "")
+            }
+            $(".trace-table").load("/analyze/loadCompeteTopX?" + serialize);
+        });
+
+        // 筛选统计的方法
+        $("#methodForm").click(function (){
+            let serialize = $(".method-form").serialize();
+            $(".method-table").load("/analyze/loadMethodStat?" + serialize, function (response){
+                let dataType = $("#method-active").find(".title-ul li.li-default").attr("data-type");
+                if (dataType === "pie") {
+                    let dataJson = $(response).find("tbody").attr("data");
+                    if (!$.isEmptyObject(dataJson)) {
+                        let dataList = eval(dataJson);
+                        initPie(dataList);
+                    }
+                }
+            });
+        });
+
+        // 详情
+        $(".layui-table").delegate(".a-btn", "click", function (){
+            let trNode = $(this).parent().parent();
+            let dataFlag = trNode.next().attr("class");
+            if (dataFlag === 'trace') {
+                return;
+            }
+            $.get("/analyze/traceDetail", {"traceId": $(this).attr("data")}, function (resp){
+                if (resp.success) {
+                    let htm = "<tr class=\"trace\"><td colspan=\"11\">";
+                    $.each(resp.data, function (index, item){
+                        htm += "<div class=\"layui-timeline-item\">";
+                        if (index === 0 || resp.data.length === 1) {
+                            if (item.exceptionFlag) {
+                                htm += "<i class=\"layui-icon layui-timeline-axis layui-icon-face-cry\"></i>";
+                            }else{
+                                htm += "<i class=\"layui-icon layui-timeline-axis layui-icon-face-smile\"></i>";
+                            }
+                        }else if ((index+1) === resp.data.length) {
+                            htm += "<i class=\"layui-icon layui-anim layui-anim-rotate layui-anim-loop layui-timeline-axis\"></i>";
+                        }else{
+                            htm += "<i class=\"layui-icon layui-timeline-axis layui-icon-fire\"></i>";
+                        }
+                        htm += "<div class=\"layui-timeline-content layui-text\">";
+                        htm += "<div class=\"div-time\">" + (new Date(item.methodStartTime).Format("yyyy-MM-dd hh:mm:ss.S")) +"</div>";
+                        htm += "<div class=\"layui-timeline-title\">";
+                        htm += "<ul>";
+                        htm += "<li>";
+                        htm += "<label>调用顺序：</label>";
+                        htm += "<span>" + (item.invokeOrder + 1) + "</span>";
+                        htm += "</li>";
+                        htm += "<li>";
+                        htm += "<label>spanId：</label>";
+                        htm += "<span>" + item.spanId + "</span>";
+                        htm += "</li>";
+                        htm += "<li>";
+                        htm += "<label>服务依赖：</label>";
+                        htm += "<span>" + item.consumerServerName +" -> "+ item.providerServerName + "</span>";
+                        htm += "</li>";
+                        htm += "<li>";
+                        htm += "<label>调用的方法：</label>";
+                        htm += "<span>" + item.className + "." + item.methodName + "</span>";
+                        htm += "</li>";
+                        htm += "<li>";
+                        htm += "<label>方法耗时(ms)：</label>";
+                        htm += "<span>" + item.methodTimeConsume + "</span>";
+                        htm += "</li>";
+                        htm += "<li>";
+                        htm += "<label>请求的入口URL：</label>";
+                        htm += "<span>" + item.requestUrl + "</span>";
+                        htm += "</li>";
+                        htm += "</ul>";
+                        htm += "</div>";
+                        htm += "</div>";
+                        htm += "</div>";
+                    });
+                    htm += "</td></tr>";
+                    trNode.after(htm);
+
+                    // 初始化固定条
+                    initFixbar();
+                }
+            });
+        });
+    });
+
+    // 注销
+    function logOff(){
+        $.post("/user/disabledUser", {}, function (resp){
+            if (resp.success) {
+                window.location.reload();
+            }
+        });
+    }
+
+    // 登出
+    function logout(){
+        $.post("/logout", {}, function (resp){
+            if (resp.success) {
+                window.location.reload();
+            }
+        });
+    }
+
+    function initChart(objList) {
+        // 初始化函数
+        let xAxisData = [];
+        let seriesData = [];
+        $.each(objList, function(index, item){
+            xAxisData.push(item.serverName);
+            seriesData.push(item.invokeCount);
+        });
+
+        const myChart = echarts.init($("#chart-container")[0]);
+        const option = {
+            xAxis: {
+                type: 'category',
+                data: xAxisData
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [
+                {
+                    data: seriesData,
+                    type: 'bar'
+                }
+            ]
+        };
+
+        option && myChart.setOption(option);
+    }
+
+    function initFixbar() {
+        layui.use(function(){
+            var util = layui.util;
+            // 自定义固定条
+            util.fixbar({
+                bars: [{
+                    type: '收起链路详情',
+                    icon: 'layui-icon-up',
+                    style: 'background-color: #FF5722;'
+                }],
+                css: {right: 20, bottom: 200},
+                on: {
+                    mouseenter: function(type){
+                        layer.tips(type, this, {
+                            tips: 4,
+                            fixed: true
+                        });
+                    },
+                    mouseleave: function(type){
+                        layer.closeAll('tips');
+                    }
+                },
+                // 点击事件
+                click: function(type){
+                    if ("top" !== type) {
+                        $(".layui-table").find(".trace").remove();
+                        $(".layui-fixbar").remove();
+                    }
+                }
+            });
+        });
+    }
+
+    function initGraph(){
+        $.get("/analyze/topologyMap", {}, function (resp){
+            if (resp.success) {
+                let data = resp.data;
+
+                let chartDom = document.getElementById('graph-container');
+                let myChart = echarts.init(chartDom);
+                let option = {
+                    title: {
+                        text: '服务调用关系图'
+                    },
+                    animationDurationUpdate: 1500,
+                    animationEasingUpdate: 'quinticInOut',
+                    series: [
+                        {
+                            type: 'graph',
+                            layout: 'none',
+                            symbolSize: 50,
+                            roam: true,
+                            label: {
+                                show: true
+                            },
+                            edgeSymbol: ['circle', 'arrow'],
+                            edgeSymbolSize: [4, 10],
+                            edgeLabel: {
+                                fontSize: 20
+                            },
+                            data: data.itemList,
+                            links: data.refList,
+                            lineStyle: {
+                                opacity: 0.9,
+                                width: 2,
+                                curveness: 0
+                            }
+                        }
+                    ]
+                };
+
+                option && myChart.setOption(option);
+            }
+        });
+    }
+
+    function initPie(objList){
+        // 初始化函数
+        let dataList = [];
+        $.each(objList, function(index, o){
+            let item = {};
+            item.name =  o.className + "." + o.methodName;
+            item.value = o.invokeCount;
+            dataList.push(item);
+        });
+
+        let chartDom = document.getElementById('pie-container');
+        let myChart = echarts.init(chartDom);
+        let option = {
+            title: {
+                text: '方法调用的活跃程度',
+                subtext: '被调用次数',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left'
+            },
+            series: [
+                {
+                    name: '方法调用次数',
+                    type: 'pie',
+                    radius: '50%',
+                    data: dataList,
+                    center: ['50%', '55%'],
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        };
+
+        option && myChart.setOption(option);
+    }
+</script>
+</html>

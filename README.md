@@ -1,5 +1,5 @@
 【特别说明】
-> 由于之前的的`Github`仓库 https://github.com/simonkingws 的账户二次验证的秘钥丢失，所以重新创建仓库，维护此项目。
+> 由于之前的`Github`仓库 https://github.com/simonkingws 的账户二次验证的秘钥丢失，无法继续使用，所以重新创建仓库，维护此项目。
 
 # webconfig-springboot 说明
 

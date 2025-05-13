@@ -33,7 +33,7 @@ public class BookServiceImpl implements BookService {
     @InnerTrace
     public String bookName(Integer bookId) {
         BigDecimal book2Price = book2Service.getBook2Price();
-        fooService.foo();
+        // fooService.foo();
         log.info("book2Service.getBook2Price()=====> book2Price={}", book2Price);
         return "<<侠客行>> --> bookId=" + bookId;
     }

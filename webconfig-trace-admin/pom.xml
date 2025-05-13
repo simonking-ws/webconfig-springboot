@@ -97,7 +97,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>io.github.simonkingws.webconfig.trace.admin.WebconfigTraceAdminApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>

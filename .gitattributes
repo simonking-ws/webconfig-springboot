@@ -1,0 +1,4 @@
+# 用于修改标签为后端主语言
+*.js linguist-language=Java
+*.css linguist-language=Java
+*.html linguist-language=Java

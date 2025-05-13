@@ -14,7 +14,7 @@ JDK1.8+，redis，springboot2.x，dubbo3.x
 ### webconfig-spring-boot-starter 特性
 依赖：
 ```xml
-<!-- https://central.sonatype.com/artifact/io.github.simonkingws/webconfig-spring-boot-starte -->
+<!-- https://central.sonatype.com/artifact/io.github.simonkingws/webconfig-spring-boot-starter -->
 <dependency>
     <groupId>io.github.simonkingws</groupId>
     <artifactId>webconfig-spring-boot-starter</artifactId>
